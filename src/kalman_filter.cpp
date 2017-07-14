@@ -1,5 +1,4 @@
 #include "kalman_filter.h"
-#include "tools.h"
 #include <math.h>
 #include <iostream>
 
@@ -31,15 +30,14 @@ void KalmanFilter::Predict() {
 void KalmanFilter::Update(const VectorXd &z) {
     /* update the state by using Kalman Filter equations */
 	VectorXd z_pred = H_ * x_;
-	VectorXd y = z - z_pred;
-	MatrixXd Ht = H_.transpose();
-	MatrixXd S = H_ * P_ * Ht + R_;
-	MatrixXd Si = S.inverse();
-	MatrixXd PHt = P_ * Ht;
-	MatrixXd K = PHt * Si;
+	VectorXd y      = z - z_pred;
+	MatrixXd Ht     = H_.transpose();
+	MatrixXd S      = H_ * P_ * Ht + R_;
+	MatrixXd Si     = S.inverse();
+	MatrixXd PHt    = P_ * Ht;
+	MatrixXd K      = PHt * Si;
 
 	//new estimate
-    cerr << "update ladar" << endl;
 	x_ = x_ + (K * y);
 	long x_size = x_.size();
 	MatrixXd I = MatrixXd::Identity(x_size, x_size);
@@ -48,44 +46,41 @@ void KalmanFilter::Update(const VectorXd &z) {
 
 void KalmanFilter::UpdateEKF(const VectorXd &z) {
     /* update the state by using Extended Kalman Filter equations */
-    Tools tools;
-
     float px = x_(0);
     float py = x_(1);
     float vx = x_(2);
     float vy = x_(3);
     VectorXd h(3);
 
-    h << sqrt(pow(px, 2) + pow(py, 2)),
-      atan2(py, px),
-      (px*vx)+(py*vy)/sqrt(pow(px, 2) + pow(py, 2));
-
-    while(h(1) < -M_PI || M_PI < h(1)) {
-        if(h(1) < -M_PI) {
-            h(1) += M_PI * 2;
+    float c1 = sqrt(pow(px, 2) + pow(py, 2));
+    float c2 = (px*vx)+(py*vy);
+    if(fabs(c1) < 0.0001 || isinf(c1)) {
+        if(c1 > 0) {
+            c1 =  0.0001;
         } else {
-            h(1) -= M_PI * 2;
+            c1 = -0.0001;
         }
     }
 
-    MatrixXd Hj = tools.CalculateJacobian(x_);
+    h << c1, atan2(py, px), c2/c1;
+
 	VectorXd y = z - h;
-	MatrixXd Ht = Hj.transpose();
-	MatrixXd S = Hj * P_ * Ht + R_;
-	MatrixXd Si = S.inverse();
+    while(y(1) < -M_PI || M_PI < y(1)) {
+        if(y(1) < -M_PI) {
+            y(1) += M_PI * 2;
+        } else {
+            y(1) -= M_PI * 2;
+        }
+    }
+	MatrixXd Ht  = H_.transpose();
+	MatrixXd S   = H_ * P_ * Ht + R_;
+	MatrixXd Si  = S.inverse();
 	MatrixXd PHt = P_ * Ht;
-	MatrixXd K = PHt * Si;
+	MatrixXd K   = PHt * Si;
 
 	//new estimate
-    cerr << "update radar" << endl;
-    cerr << "x" << endl;
-    cerr << x_ << endl;
-    cerr << "K" << endl;
-    cerr << K << endl;
-    cerr << "y" << endl;
-    cerr << y << endl;
 	x_ = x_ + (K * y);
 	long x_size = x_.size();
 	MatrixXd I = MatrixXd::Identity(x_size, x_size);
-	P_ = (I - K * Hj) * P_;
+	P_ = (I - K * H_) * P_;
 }
