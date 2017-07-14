@@ -1,7 +1,9 @@
 #include "kalman_filter.h"
 #include "tools.h"
 #include <math.h>
+#include <iostream>
 
+using namespace std;
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
@@ -37,6 +39,7 @@ void KalmanFilter::Update(const VectorXd &z) {
 	MatrixXd K = PHt * Si;
 
 	//new estimate
+    cerr << "update ladar" << endl;
 	x_ = x_ + (K * y);
 	long x_size = x_.size();
 	MatrixXd I = MatrixXd::Identity(x_size, x_size);
@@ -74,6 +77,13 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
 	MatrixXd K = PHt * Si;
 
 	//new estimate
+    cerr << "update radar" << endl;
+    cerr << "x" << endl;
+    cerr << x_ << endl;
+    cerr << "K" << endl;
+    cerr << K << endl;
+    cerr << "y" << endl;
+    cerr << y << endl;
 	x_ = x_ + (K * y);
 	long x_size = x_.size();
 	MatrixXd I = MatrixXd::Identity(x_size, x_size);
